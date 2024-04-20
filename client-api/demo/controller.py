@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(1, '../')
 import threading
 import json
@@ -6,10 +7,12 @@ from portal_client import PortalClient
 from consumer import PortalConsumer
 import time
 import random
+
 config = json.load(open('config.json'))['brokers']
 import signal
 
 controller = None
+
 
 class CONTROLLER(threading.Thread):
     def __init__(self, topic, sleep_time=0):
@@ -24,7 +27,7 @@ class CONTROLLER(threading.Thread):
 
     def set_consumer(self):
         self.client = PortalClient(config)
-        self.consumer = PortalConsumer(self.client,self.topic)
+        self.consumer = PortalConsumer(self.client, self.topic)
 
     def do_action(self, message):
         print(message)
@@ -50,6 +53,6 @@ signal.signal(signal.SIGINT, handler)
 
 if __name__ == '__main__':
     controller_topic = sys.argv[1]
-    
+
     controller = CONTROLLER(controller_topic)
     controller.start()

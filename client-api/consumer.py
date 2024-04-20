@@ -24,7 +24,9 @@ class PortalConsumer:
         resp,_=self.client.request('POST','/consumer/create',data={})
         self.client.zk.create('/consumers/{}'.format(self.client.id),ephemeral=True)
         # self.client.zk.create('/locks/topics/{}/{}'.format(self.topic,self.client.id), b'0',ephemeral=True)
-        # print(resp['message'])
+        # print(resp['message'])  #consumer created successfully
+        # print("hi from consumer")
+        # print(resp) # {'message': 'consumer created successfully'}
 
     def __unregister(self):
         resp,_=self.client.request('POST','/consumer/delete',data={})

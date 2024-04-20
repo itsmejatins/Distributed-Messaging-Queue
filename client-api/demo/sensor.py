@@ -25,6 +25,7 @@ class SENSOR(threading.Thread):
         self._stopevent = threading.Event()
  
     def set_producer(self):
+        print(f"setting producer {__name__}")
         self.client = PortalClient(config)
         self.producer = PortalProducer(self.client)
 

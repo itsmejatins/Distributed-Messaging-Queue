@@ -1,4 +1,8 @@
-from ..client-api.portal_client import PortalClient
-client = PortalClient(None)
+from portal_client import PortalClient
+from producer import PortalProducer
 
-print("Hi")
+
+client = PortalClient(None)
+producer = PortalProducer(client)
+
+producer.send_message(topic="t1", message="message1")
