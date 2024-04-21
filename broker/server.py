@@ -77,13 +77,23 @@ def printcommand(str, mode="GREEN"):
 
 
 # Define a function to connect to the database
+# def get_db_connection():
+#     """
+#     row_factory: This attribute determines how query results should be returned. In this case, sqlite3.Row is used, which returns query results as sqlite3.Row objects.
+#     sqlite3.Row: This is a factory function that creates objects that behave like dictionaries, allowing access to columns by name.
+#     Setting the row factory to sqlite3.Row enables accessing query results using column names instead of just indices.
+#     """
+#     conn = sqlite3.connect("./db/" + str(PORT) + ".sqlite")
+#     conn.row_factory = sqlite3.Row
+#     return conn
+
 def get_db_connection():
     """
-    row_factory: This attribute determines how query results should be returned. In this case, sqlite3.Row is used, which returns query results as sqlite3.Row objects.
-    sqlite3.Row: This is a factory function that creates objects that behave like dictionaries, allowing access to columns by name.
-    Setting the row factory to sqlite3.Row enables accessing query results using column names instead of just indices.
+    Establishes a connection to the database with the specified PORT.
     """
-    conn = sqlite3.connect("./db/" + str(PORT) + ".sqlite")
+    port = PORT  # Assuming PORT is defined elsewhere
+    db_path = f"./db/{port}.sqlite"
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -93,54 +103,101 @@ def close_db_connection(conn):
     conn.close()
 
 
+# def db_init():
+#     con = get_db_connection()
+#     cur = con.cursor()
+#
+#     create_consumer_table = "CREATE TABLE IF NOT EXISTS consumer (id varchar(100) NOT NULL, PRIMARY KEY (id));"
+#     create_producer_table = "CREATE TABLE IF NOT EXISTS producer (id varchar(100) NOT NULL, PRIMARY KEY (id));"
+#     create_topic_table = "CREATE TABLE IF NOT EXISTS topic (id INTEGER PRIMARY KEY AUTOINCREMENT, name varchar(100) NOT NULL UNIQUE, offset INTEGER NOT NULL, size INTEGER NOT NULL);"
+#     create_message_queue_table = "CREATE TABLE IF NOT EXISTS message_queue (id INTEGER NOT NULL, seq_no INTEGER NOT NULL, message varchar(500), PRIMARY KEY (id, seq_no), FOREIGN KEY(id) REFERENCES topic(id));"
+#     create_config_table = "CREATE TABLE IF NOT EXISTS config_table (id varchar(100) NOT NULL, last_log_index INTEGER DEFAULT 0, PRIMARY KEY (id));"
+#
+#     cur.execute(create_consumer_table)
+#     cur.execute(create_producer_table)
+#     cur.execute(create_topic_table)
+#     cur.execute(create_message_queue_table)
+#     cur.execute(create_config_table)
+#     cur.execute("INSERT OR IGNORE into config_table(id, last_log_index) values('" + str(node_id) + "'," + str(
+#         0) + ");")  # WHen the broker restarts, we don't want to insert the row having same ID
+#
+#     con.commit()
+#     close_db_connection(con)
+
 def db_init():
-    con = get_db_connection()
-    cur = con.cursor()
+    with get_db_connection() as con:
+        cur = con.cursor()
 
-    create_consumer_table = "CREATE TABLE IF NOT EXISTS consumer (id varchar(100) NOT NULL, PRIMARY KEY (id));"
-    create_producer_table = "CREATE TABLE IF NOT EXISTS producer (id varchar(100) NOT NULL, PRIMARY KEY (id));"
-    create_topic_table = "CREATE TABLE IF NOT EXISTS topic (id INTEGER PRIMARY KEY AUTOINCREMENT, name varchar(100) NOT NULL UNIQUE, offset INTEGER NOT NULL, size INTEGER NOT NULL);"
-    create_message_queue_table = "CREATE TABLE IF NOT EXISTS message_queue (id INTEGER NOT NULL, seq_no INTEGER NOT NULL, message varchar(500), PRIMARY KEY (id, seq_no), FOREIGN KEY(id) REFERENCES topic(id));"
-    create_config_table = "CREATE TABLE IF NOT EXISTS config_table (id varchar(100) NOT NULL, last_log_index INTEGER DEFAULT 0, PRIMARY KEY (id));"
+        create_table_queries = [
+            "CREATE TABLE IF NOT EXISTS consumer (id varchar(100) NOT NULL, PRIMARY KEY (id));",
+            "CREATE TABLE IF NOT EXISTS producer (id varchar(100) NOT NULL, PRIMARY KEY (id));",
+            "CREATE TABLE IF NOT EXISTS topic (id INTEGER PRIMARY KEY AUTOINCREMENT, name varchar(100) NOT NULL UNIQUE, offset INTEGER NOT NULL, size INTEGER NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS message_queue (id INTEGER NOT NULL, seq_no INTEGER NOT NULL, message varchar(500), PRIMARY KEY (id, seq_no), FOREIGN KEY(id) REFERENCES topic(id));",
+            "CREATE TABLE IF NOT EXISTS config_table (id varchar(100) NOT NULL, last_log_index INTEGER DEFAULT 0, PRIMARY KEY (id));"
+        ]
 
-    cur.execute(create_consumer_table)
-    cur.execute(create_producer_table)
-    cur.execute(create_topic_table)
-    cur.execute(create_message_queue_table)
-    cur.execute(create_config_table)
-    cur.execute("INSERT OR IGNORE into config_table(id, last_log_index) values('" + str(node_id) + "'," + str(
-        0) + ");")  # WHen the broker restarts, we don't want to insert the row having same ID
+        for query in create_table_queries:
+            cur.execute(query)
 
-    con.commit()
-    close_db_connection(con)
+        cur.execute("INSERT OR IGNORE into config_table(id, last_log_index) values('" + str(node_id) + "'," + str(
+            0) + ");")
 
+        con.commit()
+
+
+# def db_clear():
+#     con = get_db_connection()
+#     cur = con.cursor()
+#
+#     drop_consumer_table = "DROP TABLE IF EXISTS consumer;"
+#     drop_producer_table = "DROP TABLE IF EXISTS producer;"
+#     drop_topic_table = "DROP TABLE IF EXISTS topic;"
+#     drop_message_queue_table = "DROP TABLE IF EXISTS message_queue;"
+#     drop_config_table = "DROP TABLE IF EXISTS config_table;"
+#
+#     cur.execute(drop_consumer_table)
+#     cur.execute(drop_producer_table)
+#     cur.execute(drop_topic_table)
+#     cur.execute(drop_message_queue_table)
+#     cur.execute(drop_config_table)
+#
+#     con.commit()
+#     close_db_connection(con)
 
 def db_clear():
-    con = get_db_connection()
-    cur = con.cursor()
+    with get_db_connection() as con:
+        cur = con.cursor()
 
-    drop_consumer_table = "DROP TABLE IF EXISTS consumer;"
-    drop_producer_table = "DROP TABLE IF EXISTS producer;"
-    drop_topic_table = "DROP TABLE IF EXISTS topic;"
-    drop_message_queue_table = "DROP TABLE IF EXISTS message_queue;"
-    drop_config_table = "DROP TABLE IF EXISTS config_table;"
+        drop_table_queries = [
+            "DROP TABLE IF EXISTS consumer;",
+            "DROP TABLE IF EXISTS producer;",
+            "DROP TABLE IF EXISTS topic;",
+            "DROP TABLE IF EXISTS message_queue;",
+            "DROP TABLE IF EXISTS config_table;"
+        ]
 
-    cur.execute(drop_consumer_table)
-    cur.execute(drop_producer_table)
-    cur.execute(drop_topic_table)
-    cur.execute(drop_message_queue_table)
-    cur.execute(drop_config_table)
+        for query in drop_table_queries:
+            cur.execute(query)
 
-    con.commit()
-    close_db_connection(con)
+        con.commit()
+
+
+# def become_leader():
+#     leader_loc = {'host': HOST, 'port': PORT}
+#     leader_loc_str = json.dumps(
+#         leader_loc)  # JSON serialization converts Python objects into a string representation that can be transmitted over a network or stored in a file.
+#     zk.set('/leader',
+#            leader_loc_str.encode())  # Whenever the current broker becomes the leader, it creates an ephemeral node /leader and adds the ip and port as its meta data.
+#     print("<Leader>")
+
+def set_leader_location():
+    leader_loc = {'host': HOST, 'port': PORT}
+    leader_loc_str = json.dumps(leader_loc)
+    zk.set('/leader', leader_loc_str.encode())
 
 
 def become_leader():
-    leader_loc = {'host': HOST, 'port': PORT}
-    leader_loc_str = json.dumps(
-        leader_loc)  # JSON serialization converts Python objects into a string representation that can be transmitted over a network or stored in a file.
-    zk.set('/leader',
-           leader_loc_str.encode())  # Whenever the current broker becomes the leader, it creates an ephemeral node /leader and adds the ip and port as its meta data.
+    set_leader_location()
     print("<Leader>")
 
 
@@ -180,23 +237,48 @@ def clear():
     return 'Cleared DB'
 
 
+# def topic_lock(topic, consumer_id):
+#     data, stat = zk.get('locks/topics/{}'.format(topic))
+#     lock_state = int(data.decode())
+#     if lock_state == 0:
+#         zk.set('locks/topics/{}'.format(topic, consumer_id), b'1')
+
+
 def topic_lock(topic, consumer_id):
-    data, stat = zk.get('locks/topics/{}'.format(topic))
-    lock_state = int(data.decode())
-    if lock_state == 0:
+    try:
+        lock_path, _ = zk.get('locks/topics/{}'.format(topic))
+        lock_state = int(lock_path.decode())
+    except:
+        lock_state = 0  # Assume the lock is not held if it's not found
+
+    if not lock_state:
         zk.set('locks/topics/{}'.format(topic, consumer_id), b'1')
 
 
+# def topic_unlock_all_consumers(topic):
+#     """
+#     You will understand this method after reading create topic method
+#     :param topic:
+#     :return:
+#     """
+#     data, stat = zk.get('locks/topics/{}'.format(topic))
+#     lock_state = int(data.decode())
+#     if lock_state == 1:
+#         zk.set('locks/topics/{}'.format(topic), b'0')
+
+
 def topic_unlock_all_consumers(topic):
-    """
-    You will understand this method after reading create topic method
-    :param topic:
-    :return:
-    """
-    data, stat = zk.get('locks/topics/{}'.format(topic))
-    lock_state = int(data.decode())
+    lock_path = 'locks/topics/{}'.format(topic)
+
+    try:
+        lock_state, _ = zk.get(lock_path)
+        lock_state = int(lock_state.decode())
+    except:
+        # If the lock state is not found, assume it's unlocked
+        lock_state = 0
+
     if lock_state == 1:
-        zk.set('locks/topics/{}'.format(topic), b'0')
+        zk.set(lock_path, b'0')
 
 
 ## Producer will call it to publish the message
