@@ -3,21 +3,30 @@ import sys
 sys.path.insert(1, '../')
 import threading
 import json
-from portal_client import PortalClient
-from producer import PortalProducer
+
+from myproducer import Producer
+from properties import Properties
+from producer_record import ProducerRecord
+
 import time
 import random
 import signal
+import uuid
 
 config = json.load(open('config.json'))['brokers']
 inGen = None
 
 
 class InvoiceProducer(threading.Thread):
-    def __init__(self, gen_name):
+    def __init__(self, gen_name, bootstrap_servers, id):
         threading.Thread.__init__(self)
-        self.client = PortalClient(None)
-        self.producer = PortalProducer(self.client)
+
+        self.props = Properties()
+        self.props.put(key="bootstrap_servers", val=bootstrap_servers)
+        self.props.put(key="id", val=id)
+
+        self.producer = Producer(self.props)
+
         self._stopevent = threading.Event()
         self.gen_name = gen_name
 
@@ -34,7 +43,9 @@ class InvoiceProducer(threading.Thread):
             invoice = self.generateInvoice()
             if self._stopevent.isSet():
                 break
-            self.producer.send_message("All Invoices", f"{invoice} Invoice {self.gen_name} {count}")
+
+            pr = ProducerRecord("All Invoices", f"{invoice} Invoice {self.gen_name} {count}")
+            self.producer.send(pr)
             count += 1
             print(f"Invoice {self.gen_name} {count}")
             time.sleep(1)
@@ -52,5 +63,10 @@ signal.signal(signal.SIGINT, handler)
 
 if __name__ == "__main__":
     gen_name = sys.argv[1]
-    inGen = InvoiceProducer(gen_name)
+    bootstrap_servers = []
+    for i in range(2, len(sys.argv)):
+        bootstrap_servers.append(sys.argv[i])
+
+    id_ = uuid.uuid4()
+    inGen = InvoiceProducer(gen_name, bootstrap_servers, int(id_))
     inGen.start()
