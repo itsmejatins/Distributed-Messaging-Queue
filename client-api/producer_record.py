@@ -5,9 +5,6 @@ import json
 import logging
 import time
 
-TIMEOUT_CONNECT = 5
-TIMEOUT_REQUEST = 3
-MAX_RETRY = 20
 
 
 class ProducerRecord:

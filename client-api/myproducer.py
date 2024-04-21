@@ -26,7 +26,7 @@ class Producer:
             self.leader = json.loads(data.decode())
             print(f"New leader: {self.leader}")
 
-        self.register()
+        self._register()
 
     def _send_request(self, path, data):
         tries = 0
@@ -46,7 +46,7 @@ class Producer:
                 return None, response.status_code
             return response.json(), response.status_code
 
-    def register(self):
+    def _register(self):
         print(f"Registering producer id = {self.id}")
         data = {"id": str(self.id)}
 
