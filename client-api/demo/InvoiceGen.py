@@ -13,7 +13,6 @@ import random
 import signal
 import uuid
 
-config = json.load(open('config.json'))['brokers']
 inGen = None
 
 

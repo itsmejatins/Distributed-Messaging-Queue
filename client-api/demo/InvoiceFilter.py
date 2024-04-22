@@ -13,7 +13,7 @@ from producer_record import ProducerRecord
 import time
 import random
 
-config = json.load(open('config.json'))['brokers']
+
 import signal
 
 filter_ = None
@@ -42,7 +42,7 @@ class InvoiceFilter(threading.Thread):
 
     def run(self):
         while True:
-            message = self.consumer.get_message()
+            message = self.consumer.consume()
             if self._stopevent.isSet():
                 break
             if message.startswith("Valid"):

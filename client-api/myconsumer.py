@@ -21,8 +21,8 @@ class Consumer:
         data, _ = self.zk.get('/leader')
         self.leader = json.loads(data.decode())
 
-        if not self.is_exists_topic(self.topic):
-            self.create_topic(self.topic)
+        if not self.isTopic(self.topic):
+            self.createTopic(self.topic)
 
         self._event = threading.Event()
 
@@ -34,13 +34,11 @@ class Consumer:
 
         @self.zk.DataWatch(f'locks/topics/{self.topic}')
         def watch_lock_status(data, stat):
-            # This function will be called whenever the data of the "/leader" node changes
             lock_state = data.decode()
             if lock_state == '0':
                 self._event.set()
             else:
                 self._event.clear()
-            # print('Lock State :'+lock_state)
 
     def _send_request(self, path, data):
         tries = 0
@@ -82,7 +80,7 @@ class Consumer:
             print(f"Successfully unregistered consumer with id = {self.id}")
             print(f"Response from broker = {resp}")
 
-    def is_exists_topic(self, topic):
+    def isTopic(self, topic):
         data = {
             "id": str(self.id),
             "name": topic
@@ -90,7 +88,7 @@ class Consumer:
         resp, _ = self._send_request(path='/topic/exists', data=data)
         return resp['message']
 
-    def create_topic(self, topic):
+    def createTopic(self, topic):
         data = {
             "id": str(self.id),
             "name": topic
@@ -98,7 +96,7 @@ class Consumer:
         resp, _ = self._send_request(path='/topic/create', data=data)
         # print(resp['message'])
 
-    def read_message(self, topic):
+    def oneCycle(self, topic):
         try:
             resp, status = self._send_request(path='/read', data={"id": str(self.id), "name": topic})
             if status == 200:
@@ -107,17 +105,9 @@ class Consumer:
             pass
         return None
 
-    def get_message(self):
-        """Blocking call that returns a message from the given topic.
-
-        Args:
-            topic (str): Topic of the message queue
-
-        Returns:
-            str: Message
-        """
+    def consume(self):
         while True:
-            resp_mesg = self.read_message(self.topic)
+            resp_mesg = self.oneCycle(self.topic)
             if resp_mesg is None:
                 self._event.wait()
                 continue

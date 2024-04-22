@@ -1,50 +1,75 @@
-## Setup
+# Distributed Messaging Queue
+This is a distributed messaging queue where we have three components -
+- Brokers
+- Producer
+- Consumer
 
-### Zookeeper configuration
-```
-localhost:2181
-```
+## Overview
 
-### Broker Setup
-```bash
-python3 server.py 5000
-python3 server.py 5001
-python3 server.py 5002
-```
-### Requirements:
-- Zookeeper (kazoo - python)
-- REST API (flask - python)
-- Threading (python)
+### Brokers
+- The code for brokers is in the file `server.py`. The brokers are responsible for taking messages from the producers and storing them to be consumed later by consumers.
+- Each instance of broker maintains all the information in its own database (SQLITE). The database among all the instances of brokers are synced.
 
-### Why Zookeeper is important ?
+### Consumer
+- The conde for consumers is present in `myconsumer.py`.
+- The consumer must be provided an instance of `Properties` object. This object must contain the following -
+  - local of zookeeper
+  - consumer id
+  - the topic 
+- The consumer needs to register itself with the broker once.
+- The consumer has method which will contact the broker and fetch the messages from the topic mentioned.
 
-Creates a reliable communication mechanism among different brokers to coordinate certain actions.
+### Producers
 
-## Demo
-Simulation of Sensors and Controllers in an IoT environment where Sensors are producers and Controllers are consumers.
+- The code for the producer is present in `myproducer.py`.
+- The producer takes an instance of `Properties` object. This object contains required configurations -
+  - address of zookeeper
+  - producer id
+- The producer needs to register itself with the broker once.
+- To send a message to the broker, the producer has send method which takes an instance of `ProducerRecord` as input. This instance has the following information -
+  - the destination topic.
+  - the message content.
 
-### Sensors (Producers)
-```bash
-python3 sensor.py temp 1 5
-python3 sensor.py temp 1 2
-python3 sensor.py temp 2 3
-```
+## How to run
 
-### Controllers (Consumers)
-```bash
-python3 controller.py temp_1
-python3 controller.py temp_1
-python3 controller.py temp_2
-```
+For the purpose of demo, we have created a simple Produce-Consume-Transform pipeline. Inside the `demo` directory we have two files -
+- InvoiceGen.py: This generates invoices. Some invoices are valid invoices whereas some are invalid. ALl the invoices are sent to `All Invoices` topic.
+- InvoiceFilter.py: This consumes the invoices from `All Invoices` topic and sends the valid invoices to `Valid Invoices
+ topic and invalid invoices to `Invalid Invoices` topic.
+### Zookeeper
+- The first step is to run zookeeper. The script for running zookeeper is present in `scripts` directory.
+- The script must be modified with the location of confluent directory.
 
-### Atleast Once Delivery
-- `Producer -> Broker:` Producer keeps on retrying to send the message incase of network failure until it recieves an acknowledgement from broker.
-- `Broker -> Consumer:` Broker first sends the message with its sequence number, only when consumer recieves the message it tells the broker to consume and only then the message is consumed and offset is incremented.
+#### Zookeeper logs
 
-### Consumers Subscribe
-- Consumers automatically sleep when there is no message in the queue.
-- Whenever a new message arrives all the consumers are notified which are in sleep mode and they compete to consume a message from the queue.
+- For convenience, our terminal runs inside root directory of the project - `Messaging Queue`.
+- We have configured `zookeeper.properties` in such a way that all the zookeeper logs gets generated inside the folder `generated_logs` present in the root directory of the project.
 
-### Broker Replication
-- Shutdown leader and check which new leader gets elected and check if all operations have been executed.
-- If running producers and consumers automatically aligns themselves to the new leader.
+### Database files
+
+- The database files gets generated inside the folder `db`. Whenever the project needs to be restarted, the following things need to be done - 
+  - delete all the files in `db` directory.
+  - delete zookeeper logs from `generated_logs` folder.
+
+### Running brokers
+
+- Run server.py with command line argument as the port number on which the server should run. Ex - `python3 server.py 5001`.
+- Run as many instances as you wish on different port numbers.
+
+### Running InvoiceGen.py
+- This takes three arguments which are to be supplied from the command line - 
+  - generator name
+  - location of zookeeper 
+  - id of the generator
+- Ex - `python3 InvoiceGen.py gen1 localhost:2181 1234`
+- Run as many instances as required with unique name and id.
+
+### Running InvoiceFilter.py
+- This takes two arguments which are to be supplied from the command line - 
+  - filter name
+  - location of zookeeper
+- Ex - `python3 InvoiceFilter.py filter1 localhost:2181`
+- Run as many instances as required with unique name.
+
+
+

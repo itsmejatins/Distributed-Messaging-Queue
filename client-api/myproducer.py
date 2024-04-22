@@ -67,7 +67,7 @@ class Producer:
             print(f"Successfully unregistered producer with id = {self.id}")
             print(f"Response from broker = {resp}")
 
-    def is_exists_topic(self, topic):
+    def existsTopic(self, topic):
         data = {
             "id": str(self.id),
             "name": topic
@@ -75,7 +75,7 @@ class Producer:
         resp, status = self._send_request(path='/topic/exists', data=data)
         return resp['message']
 
-    def create_topic(self, topic):
+    def createTopic(self, topic):
         data = {
             "id": str(self.id),
             "name": topic
@@ -87,8 +87,8 @@ class Producer:
         topic = pr.topic
         msg = pr.msg
 
-        if not self.is_exists_topic(topic):
-            self.create_topic(topic)
+        if not self.existsTopic(topic):
+            self.createTopic(topic)
 
         data = {
             "id": str(self.id),
