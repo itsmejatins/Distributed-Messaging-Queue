@@ -8,7 +8,7 @@ from producer_record import ProducerRecord
 import requests
 
 MAX_RETRY = 20
-
+TIMEOUT_REQUEST = 3
 
 class Producer:
     def __init__(self, props: Properties):
@@ -28,23 +28,18 @@ class Producer:
 
         self._register()
 
-    def _send_request(self, path, data):
-        tries = 0
-        while tries < MAX_RETRY:
-            try:
-                response = requests.post(f"http://{self.leader['host']}:{self.leader['port']}{path}", json=data)
-                if not response.status_code == 200:
-                    return None, response.status_code
-                return response.json(), response.status_code
 
-            except Exception as e:
-                time.sleep(1)
-                tries += 1
-
+    def _send_request(self, path, data, timeout=TIMEOUT_REQUEST, recur=0):
+        if recur >= MAX_RETRY:
+            raise Exception(f"Unable to connect to leader after {MAX_RETRY} retries")
+        try:
             response = requests.post(f"http://{self.leader['host']}:{self.leader['port']}{path}", json=data)
             if not response.status_code == 200:
                 return None, response.status_code
             return response.json(), response.status_code
+        except Exception:
+            time.sleep(1)
+            return self._send_request(path, data, timeout, recur + 1)
 
     def _register(self):
         print(f"Registering producer id = {self.id}")
